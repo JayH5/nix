@@ -941,6 +941,25 @@ pub fn setgid(gid: Gid) -> Result<()> {
     Errno::result(res).map(drop)
 }
 
+pub fn getgroups() -> Result<Vec<Gid>> {
+    // First get the number of groups so we can size our Vec
+    use std::ptr;
+    let ret = unsafe { libc::getgroups(0, ptr::null_mut()) };
+    let size = try!(Errno::result(ret));
+
+    // Now actually get the groups
+    let mut groups = Vec::with_capacity(size as usize);
+    let ret = unsafe { libc::getgroups(size, groups.as_mut_ptr()) };
+
+    Errno::result(ret).map(|s| {
+        // Use the size returned from the second getgroups call: the user could have been removed
+        // from a group between the two calls and we don't want to incorrectly set the length of
+        // the Vec and expose uninitialized memory.
+        unsafe { groups.set_len(s as usize) };
+        groups.iter().cloned().map(|gid| Gid::from_raw(gid)).collect()
+    })
+}
+
 pub fn setgroups(groups: &[Gid]) -> Result<()> {
     cfg_if! {
         if #[cfg(any(target_os = "dragonfly",
