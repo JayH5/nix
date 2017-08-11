@@ -104,6 +104,27 @@ mod linux_android {
     }
 }
 
+#[test]
+fn test_setgroups() {
+    if !Uid::current().is_root() {
+        // setgroups() requires root
+        return
+    }
+
+    // Save the existing groups
+    let old_groups = getgroups().unwrap();
+
+    // Set some new made up groups
+    let groups = [Gid::from_raw(123), Gid::from_raw(456)];
+    setgroups(&groups).unwrap();
+
+    let new_groups = getgroups().unwrap();
+    assert_eq!(new_groups, groups);
+
+    // Revert back to the old groups
+    setgroups(&old_groups).unwrap();
+}
+
 macro_rules! execve_test_factory(
     ($test_name:ident, $syscall:ident, $unix_sh:expr, $android_sh:expr) => (
     #[test]
