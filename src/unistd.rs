@@ -943,12 +943,12 @@ pub fn setgid(gid: Gid) -> Result<()> {
 
 pub fn setgroups(groups: &[Gid]) -> Result<()> {
     cfg_if! {
-        if #[cfg(any(target_os = "macos",
-                     target_os = "ios",
+        if #[cfg(any(target_os = "dragonfly",
                      target_os = "freebsd",
-                     target_os = "dragonfly",
-                     target_os = "openbsd",
-                     target_os = "netbsd"))] {
+                     target_os = "ios",
+                     target_os = "macos",
+                     target_os = "netbsd",
+                     target_os = "openbsd"))] {
             type setgroups_ngroups_t = c_int;
         } else {
             type setgroups_ngroups_t = size_t;
@@ -960,10 +960,10 @@ pub fn setgroups(groups: &[Gid]) -> Result<()> {
     Errno::result(res).map(drop)
 }
 
-#[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "ios"))]
+#[cfg(any(target_os = "android", target_os = "ios", target_os = "linux", target_os = "macos"))]
 pub fn initgroups(user: &CString, group: Gid) -> Result<()> {
     cfg_if! {
-        if #[cfg(any(target_os = "macos", target_os = "ios"))] {
+        if #[cfg(any(target_os = "ios", target_os = "macos"))] {
             type initgroups_group_t = c_int;
         } else {
             type initgroups_group_t = gid_t;
