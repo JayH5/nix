@@ -961,6 +961,22 @@ pub fn setgroups(groups: &[Gid]) -> Result<()> {
     Errno::result(res).map(drop)
 }
 
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "ios"))]
+#[inline]
+pub fn initgroups(user: &CString, group: Gid) -> Result<()> {
+    cfg_if! {
+        if #[cfg(any(target_os = "macos", target_os = "ios"))] {
+            type initgroups_group_t = c_int;
+        } else {
+            type initgroups_group_t = gid_t;
+        }
+    }
+    let gid: gid_t = group.into();
+    let res = unsafe { libc::initgroups(user.as_ptr(), gid as initgroups_group_t) };
+
+    Errno::result(res).map(drop)
+}
+
 #[inline]
 pub fn pause() -> Result<()> {
     let res = unsafe { libc::pause() };
