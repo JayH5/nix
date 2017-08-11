@@ -941,6 +941,12 @@ pub fn setgid(gid: Gid) -> Result<()> {
     Errno::result(res).map(drop)
 }
 
+/// Get the list of supplementary group IDs of the calling process.
+///
+/// Note that if the user is added to more group(s) while this call is in
+/// progress then an error (EINVAL) will be returned.
+///
+/// [Further reading](http://pubs.opengroup.org/onlinepubs/009695399/functions/getgroups.html)
 pub fn getgroups() -> Result<Vec<Gid>> {
     // First get the number of groups so we can size our Vec
     use std::ptr;
@@ -960,6 +966,9 @@ pub fn getgroups() -> Result<Vec<Gid>> {
     })
 }
 
+/// Set the list of supplementary group IDs for the calling process.
+///
+/// [Further reading](http://man7.org/linux/man-pages/man2/getgroups.2.html)
 pub fn setgroups(groups: &[Gid]) -> Result<()> {
     cfg_if! {
         if #[cfg(any(target_os = "dragonfly",
@@ -979,6 +988,11 @@ pub fn setgroups(groups: &[Gid]) -> Result<()> {
     Errno::result(res).map(drop)
 }
 
+/// Initialize the supplementary group access list. Sets the supplementary
+/// group IDs for the calling process using all groups that `user` is a member
+/// of. The additional group `group` is also added to the list.
+///
+/// [Further reading](http://man7.org/linux/man-pages/man3/initgroups.3.html)
 #[cfg(any(target_os = "android", target_os = "ios", target_os = "linux", target_os = "macos"))]
 pub fn initgroups(user: &CString, group: Gid) -> Result<()> {
     cfg_if! {
