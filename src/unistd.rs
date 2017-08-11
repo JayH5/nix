@@ -942,6 +942,26 @@ pub fn setgid(gid: Gid) -> Result<()> {
 }
 
 #[inline]
+pub fn setgroups(groups: &[Gid]) -> Result<()> {
+    cfg_if! {
+        if #[cfg(any(target_os = "macos",
+                     target_os = "ios",
+                     target_os = "freebsd",
+                     target_os = "dragonfly",
+                     target_os = "openbsd",
+                     target_os = "netbsd"))] {
+            type setgroups_ngroups_t = c_int;
+        } else {
+            type setgroups_ngroups_t = size_t;
+        }
+    }
+    let gids: Vec<gid_t> = groups.iter().cloned().map(Into::into).collect();
+    let res = unsafe { libc::setgroups(groups.len() as setgroups_ngroups_t, gids.as_ptr()) };
+
+    Errno::result(res).map(drop)
+}
+
+#[inline]
 pub fn pause() -> Result<()> {
     let res = unsafe { libc::pause() };
 
@@ -1248,7 +1268,7 @@ pub enum SysconfVar {
     OPEN_MAX = libc::_SC_OPEN_MAX,
     #[cfg(any(target_os="dragonfly", target_os="freebsd", target_os = "ios",
               target_os="linux", target_os = "macos", target_os="openbsd"))]
-    /// The implementation supports the Advisory Information option. 
+    /// The implementation supports the Advisory Information option.
     _POSIX_ADVISORY_INFO = libc::_SC_ADVISORY_INFO,
     #[cfg(any(target_os="dragonfly", target_os="freebsd", target_os = "ios",
               target_os="linux", target_os = "macos", target_os="netbsd",
@@ -1267,7 +1287,7 @@ pub enum SysconfVar {
               target_os="openbsd"))]
     /// The implementation supports the Process CPU-Time Clocks option.
     _POSIX_CPUTIME = libc::_SC_CPUTIME,
-    /// The implementation supports the File Synchronization option. 
+    /// The implementation supports the File Synchronization option.
     _POSIX_FSYNC = libc::_SC_FSYNC,
     #[cfg(any(target_os="dragonfly", target_os="freebsd", target_os = "ios",
               target_os="linux", target_os = "macos", target_os="openbsd"))]
@@ -1382,7 +1402,7 @@ pub enum SysconfVar {
               target_os="linux", target_os = "macos", target_os="openbsd"))]
     /// The implementation supports timeouts.
     _POSIX_TIMEOUTS = libc::_SC_TIMEOUTS,
-    /// The implementation supports timers. 
+    /// The implementation supports timers.
     _POSIX_TIMERS = libc::_SC_TIMERS,
     #[cfg(any(target_os="dragonfly", target_os="freebsd", target_os = "ios",
               target_os="linux", target_os = "macos", target_os="openbsd"))]
