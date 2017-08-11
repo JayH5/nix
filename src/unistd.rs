@@ -941,7 +941,6 @@ pub fn setgid(gid: Gid) -> Result<()> {
     Errno::result(res).map(drop)
 }
 
-#[inline]
 pub fn setgroups(groups: &[Gid]) -> Result<()> {
     cfg_if! {
         if #[cfg(any(target_os = "macos",
@@ -962,7 +961,6 @@ pub fn setgroups(groups: &[Gid]) -> Result<()> {
 }
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "macos", target_os = "ios"))]
-#[inline]
 pub fn initgroups(user: &CString, group: Gid) -> Result<()> {
     cfg_if! {
         if #[cfg(any(target_os = "macos", target_os = "ios"))] {
