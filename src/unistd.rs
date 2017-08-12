@@ -958,11 +958,17 @@ pub fn getgroups() -> Result<Vec<Gid>> {
     let ret = unsafe { libc::getgroups(size, groups.as_mut_ptr()) };
 
     Errno::result(ret).map(|s| {
-        // Use the size returned from the second getgroups call: the user could have been removed
-        // from a group between the two calls and we don't want to incorrectly set the length of
-        // the Vec and expose uninitialized memory.
-        unsafe { groups.set_len(s as usize) };
-        groups.iter().cloned().map(|gid| Gid::from_raw(gid)).collect()
+        // We can coerce a pointer to some `gid_t`s as a pointer to some `Gid`s
+        // as they have the same representation in memory.
+        // https://doc.rust-lang.org/1.19.0/std/mem/fn.transmute.html#alternatives
+        let gids = unsafe {
+            Vec::from_raw_parts(
+                groups.as_mut_ptr() as *mut Gid,
+                s as usize,
+                groups.capacity())
+        };
+        mem::forget(groups);
+        gids
     })
 }
 
@@ -982,8 +988,11 @@ pub fn setgroups(groups: &[Gid]) -> Result<()> {
             type setgroups_ngroups_t = size_t;
         }
     }
-    let gids: Vec<gid_t> = groups.iter().cloned().map(Into::into).collect();
-    let res = unsafe { libc::setgroups(groups.len() as setgroups_ngroups_t, gids.as_ptr()) };
+    // We can coerce a pointer to some `Gid`s as a pointer to some `gid_t`s as
+    // they have the same representation in memory.
+    let res = unsafe {
+        libc::setgroups(groups.len() as setgroups_ngroups_t, groups.as_ptr() as *const gid_t)
+    };
 
     Errno::result(res).map(drop)
 }
