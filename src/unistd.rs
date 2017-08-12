@@ -954,21 +954,14 @@ pub fn getgroups() -> Result<Vec<Gid>> {
     let size = try!(Errno::result(ret));
 
     // Now actually get the groups
-    let mut groups = Vec::with_capacity(size as usize);
-    let ret = unsafe { libc::getgroups(size, groups.as_mut_ptr()) };
+    let mut groups = Vec::<Gid>::with_capacity(size as usize);
+    // We can coerce a pointer to some `Gid`s as a pointer to some `gid_t`s as
+    // they have the same representation in memory.
+    let ret = unsafe { libc::getgroups(size, groups.as_mut_ptr() as *mut gid_t) };
 
     Errno::result(ret).map(|s| {
-        // We can coerce a pointer to some `gid_t`s as a pointer to some `Gid`s
-        // as they have the same representation in memory.
-        // https://doc.rust-lang.org/1.19.0/std/mem/fn.transmute.html#alternatives
-        let gids = unsafe {
-            Vec::from_raw_parts(
-                groups.as_mut_ptr() as *mut Gid,
-                s as usize,
-                groups.capacity())
-        };
-        mem::forget(groups);
-        gids
+        unsafe { groups.set_len(s as usize) };
+        groups
     })
 }
 
