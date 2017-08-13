@@ -126,6 +126,31 @@ fn test_setgroups() {
     setgroups(&old_groups).unwrap();
 }
 
+#[test]
+fn test_initgroups() {
+    if !Uid::current().is_root() {
+        // initrgroups(), setgroups() require root
+        return
+    }
+
+    // Save the existing groups
+    let old_groups = getgroups().unwrap();
+
+    // It doesn't matter if the root user is not called "root" or if a user
+    // called "root" doesn't exist. We are just checking that the extra,
+    // made-up group, `123`, is set.
+    // FIXME: This only tests half of initgroups' functionality.
+    let user = CString::new("root").unwrap();
+    let group = Gid::from_raw(123);
+    initgroups(&user, group).unwrap();
+
+    let new_groups = getgroups().unwrap();
+    assert!(new_groups.contains(&group));
+
+    // Revert back to the old groups
+    setgroups(&old_groups).unwrap();
+}
+
 macro_rules! execve_test_factory(
     ($test_name:ident, $syscall:ident, $unix_sh:expr, $android_sh:expr) => (
     #[test]
