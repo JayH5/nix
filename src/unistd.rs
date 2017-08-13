@@ -943,26 +943,37 @@ pub fn setgid(gid: Gid) -> Result<()> {
 
 /// Get the list of supplementary group IDs of the calling process.
 ///
-/// Note that if the user is added to more group(s) while this call is in
-/// progress then an error (EINVAL) will be returned.
-///
 /// [Further reading](http://pubs.opengroup.org/onlinepubs/009695399/functions/getgroups.html)
 pub fn getgroups() -> Result<Vec<Gid>> {
     // First get the number of groups so we can size our Vec
     use std::ptr;
     let ret = unsafe { libc::getgroups(0, ptr::null_mut()) };
-    let size = try!(Errno::result(ret));
+    let mut size = try!(Errno::result(ret));
 
     // Now actually get the groups
     let mut groups = Vec::<Gid>::with_capacity(size as usize);
-    // We can coerce a pointer to some `Gid`s as a pointer to some `gid_t`s as
-    // they have the same representation in memory.
-    let ret = unsafe { libc::getgroups(size, groups.as_mut_ptr() as *mut gid_t) };
+    loop {
+        // We can coerce a pointer to some `Gid`s as a pointer to some `gid_t`s
+        // as they have the same representation in memory.
+        let ret = unsafe { libc::getgroups(size, groups.as_mut_ptr() as *mut gid_t) };
 
-    Errno::result(ret).map(|s| {
-        unsafe { groups.set_len(s as usize) };
-        groups
-    })
+        match Errno::result(ret) {
+            Ok(s) => {
+                unsafe { groups.set_len(s as usize) };
+                break
+            },
+            Err(Error::Sys(Errno::EINVAL)) => {
+                // EINVAL indicates that size was too small, so trigger a
+                // resize of the groups Vec and try again...
+                let cap = groups.capacity();
+                unsafe { groups.set_len(cap) };
+                groups.reserve(1);
+                size = groups.capacity() as c_int;
+            },
+            Err(e) => return Err(e)
+        }
+    }
+    Ok(groups)
 }
 
 /// Set the list of supplementary group IDs for the calling process.
