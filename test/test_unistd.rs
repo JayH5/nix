@@ -127,6 +127,7 @@ fn test_setgroups() {
 }
 
 #[test]
+#[cfg(not(any(target_os = "ios", target_os = "macos")))]
 fn test_initgroups() {
     if !Uid::current().is_root() {
         // initrgroups(), setgroups() require root
