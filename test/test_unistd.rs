@@ -105,6 +105,7 @@ mod linux_android {
 }
 
 #[test]
+#[cfg(not(any(target_os = "ios", target_os = "macos")))]
 fn test_setgroups() {
     if !Uid::current().is_root() {
         // setgroups() requires root

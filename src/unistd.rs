@@ -943,6 +943,12 @@ pub fn setgid(gid: Gid) -> Result<()> {
 
 /// Get the list of supplementary group IDs of the calling process.
 ///
+/// *Note:* On macOS, `getgroups()` behavior differs somewhat from other Unix
+/// platforms. It returns the current group access list for the user associated
+/// with the effective user id of the process; the group access list may change
+/// over the lifetime of the process, and it is not affected by calls to
+/// `setgroups()`.
+///
 /// [Further reading](http://pubs.opengroup.org/onlinepubs/009695399/functions/getgroups.html)
 pub fn getgroups() -> Result<Vec<Gid>> {
     // First get the number of groups so we can size our Vec
@@ -977,6 +983,9 @@ pub fn getgroups() -> Result<Vec<Gid>> {
 }
 
 /// Set the list of supplementary group IDs for the calling process.
+///
+/// *Note:* On macOS, `getgroups()` may not return the same group list set by
+/// calling `setgroups()`. Apple discourages the use of `setgroups()`.
 ///
 /// [Further reading](http://man7.org/linux/man-pages/man2/getgroups.2.html)
 pub fn setgroups(groups: &[Gid]) -> Result<()> {
