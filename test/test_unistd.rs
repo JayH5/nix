@@ -143,10 +143,13 @@ fn test_initgroups() {
     // FIXME: This only tests half of initgroups' functionality.
     let user = CString::new("root").unwrap();
     let group = Gid::from_raw(123);
+    let group_list = getgrouplist(&user, group).unwrap();
+    assert!(group_list.contains(&group));
+
     initgroups(&user, group).unwrap();
 
     let new_groups = getgroups().unwrap();
-    assert!(new_groups.contains(&group));
+    assert_eq!(new_groups, group_list);
 
     // Revert back to the old groups
     setgroups(&old_groups).unwrap();
