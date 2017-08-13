@@ -995,8 +995,6 @@ pub fn setgroups(groups: &[Gid]) -> Result<()> {
 /// of. The additional group `group` is also added to the list.
 ///
 /// [Further reading](http://man7.org/linux/man-pages/man3/initgroups.3.html)
-// TODO: Get initgroups binding added for FreeBSD in libc
-#[cfg(any(target_os = "android", target_os = "ios", target_os = "linux", target_os = "macos"))]
 pub fn initgroups(user: &CString, group: Gid) -> Result<()> {
     cfg_if! {
         if #[cfg(any(target_os = "ios", target_os = "macos"))] {
